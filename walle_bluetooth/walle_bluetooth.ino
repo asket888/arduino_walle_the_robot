@@ -1,28 +1,43 @@
-char junk;
-String inputString="";
+#include <Servo.h>
+Servo head_servo;
+char command; 
 
-void setup()                    // run once, when the sketch starts
-{
- Serial.begin(9600);            // set the baud rate to 9600, same should be of your Serial Monitor
- pinMode(13, OUTPUT);
+void setup() {
+  Serial.begin(9600);
+  head_servo.attach(4);
+  pinMode(LED_BUILTIN, OUTPUT);
 }
 
-void loop()
-{
-  if(Serial.available()){
-  while(Serial.available())
-    {
-      char inChar = (char)Serial.read(); //read the input
-      inputString += inChar;        //make a string of the characters coming on serial
+void loop() {
+  if(Serial.available() > 0) { 
+    command = Serial.read(); 
+    switch(command) {
+    case 'F':  
+      led_on();
+      break;
+    case 'B':  
+      led_off();
+      break;
+    case 'L':  
+      head_move(90);
+      break;
+    case 'R':
+      head_move(180);
+      break;
     }
-    Serial.println(inputString);
-    while (Serial.available() > 0)  
-    { junk = Serial.read() ; }      // clear the serial buffer
-    if(inputString == "a"){         //in case of 'a' turn the LED on
-      digitalWrite(13, HIGH);  
-    }else if(inputString == "b"){   //incase of 'b' turn the LED off
-      digitalWrite(13, LOW);
-    }
-    inputString = "";
   }
+}
+
+void led_on() {
+  digitalWrite(LED_BUILTIN, HIGH);
+}
+
+void led_off() {
+  digitalWrite(LED_BUILTIN, LOW);
+}
+
+
+void head_move(int angle)
+{
+  head_servo.write(angle);
 }
