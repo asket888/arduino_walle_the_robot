@@ -76,9 +76,9 @@ void setup() {
 }
 
 // dc motors controll
-void dc_move_forward(int speed, int duration) {
-  analogWrite(enA, speed);
-  analogWrite(enB, speed);
+void dc_move_forward(int speed_A, int speed_B, int duration) {
+  analogWrite(enA, speed_A);
+  analogWrite(enB, speed_B);
   
   digitalWrite(in1, LOW);
   digitalWrite(in2, HIGH); 
@@ -88,9 +88,9 @@ void dc_move_forward(int speed, int duration) {
   delay(duration);
 }
 
-void dc_move_back(int speed, int duration) {
-  analogWrite(enA, speed);
-  analogWrite(enB, speed);
+void dc_move_back(int speed_A, int speed_B, int duration) {
+  analogWrite(enA, speed_A);
+  analogWrite(enB, speed_B);
   
   digitalWrite(in1, HIGH);
   digitalWrite(in2, LOW); 
@@ -133,7 +133,6 @@ void dc_stop() {
 
 // servo motor controll
 void servo_move_head(int angle) {
-  servo_head.attach(4);
   servo_head.write(angle);
 }
 
@@ -155,27 +154,44 @@ void up_head() {
 }
 
 void down_hands() {
-  servo_move_left_hand(120);
-  servo_move_right_hand(180);
+  servo_move_left_hand(100);
+  servo_move_right_hand(90);
 }
 
 void up_hands() {
-  servo_move_left_hand(180);
-  servo_move_right_hand(120);
+  servo_move_left_hand(160);
+  servo_move_right_hand(30);
 }
 
-void shake_head() {
-  up_head();
-  delay(300);
-  down_head();
-  delay(300);
+void shake_head(int num, int delay_time) {
+  for (int i = 0; i < num; i++) {
+    up_head();
+    delay(delay_time);
+    down_head();
+    delay(delay_time);
+  }
 }
 
-void shake_hands() {
-  up_hands();
-  delay(200);
-  down_hands();
-  delay(200);
+void shake_hands(int num, int delay_time) {
+  for (int i = 0; i < num; i++) {
+    servo_move_left_hand(160);
+    servo_move_right_hand(30);
+    delay(delay_time);
+    servo_move_left_hand(100);
+    servo_move_right_hand(90);
+    delay(delay_time);
+  }
+}
+
+void wave_hands(int num, int delay_time) {
+  for (int i = 0; i < num; i++) {
+    servo_move_left_hand(100);
+    servo_move_right_hand(30);
+    delay(delay_time);
+    servo_move_left_hand(160);
+    servo_move_right_hand(90);
+    delay(delay_time);
+  }
 }
 
 void sound_upset() {
@@ -197,63 +213,81 @@ long echo_space() {
   sonic_distance = (sonic_pulse_in / 2) / 29.1;
 
   return sonic_distance;
-}  
+} 
 
 // robot behavior
-void run_robot() {
+void check_for_obstacle() {
   sonic_distance = echo_space();
-  if (sonic_distance < 30){
+  if (sonic_distance < 20) {
     dc_stop();
-    delay(200);
+    shake_hands(2, 100);
     sound_upset();
-    shake_head();
-    shake_hands();
-    shake_hands();
-    dc_move_back(170, 200);
-    dc_turn_right(150, 300);
+    dc_move_back(120, 120, 300);
+      while(Serial.available()) {
+        Serial.read();
+    }
     dc_stop();
-    delay(200);
-  }
-  else {
-    dc_move_forward(150, 50);
   }
 }
 
-void loop() {
+void check_for_controll_input() {
   if(Serial.available() > 0) { 
     bluetooth_command = Serial.read(); 
     dc_stop();
     switch(bluetooth_command) {
-    case 'F':  
-      dc_move_forward(150, 10);
+    case 'F':  // forward
+      dc_move_forward(150, 150, 5);
       break;
-    case 'B':  
-      dc_move_back(150, 10);
+    case 'B':  // backward
+      dc_move_back(150, 150, 5);
       break;
-    case 'L':  
-      dc_turn_left(150, 10);
+    case 'G':  // left & forward
+      dc_move_forward(0, 200, 5);
       break;
-    case 'R':
-      dc_turn_right(150, 10);
+    case 'I':  // right & forward
+      dc_move_forward(200, 0, 5);
       break;
-    case 'V':
+    case 'H':  // left & backward
+      dc_move_back(0, 200, 5);
+      break;
+    case 'J':  // right & backward
+      dc_move_back(200, 0, 5);
+      break;    
+    case 'L':  // turn left on place
+      dc_turn_left(120, 5);
+      break;
+    case 'R': // turn right on place
+      dc_turn_right(120, 5);
+      break;
+    case 'V': // make a beep
       sound_upset();
       break;
-    case 'v':
+    case 'v': // make a beep
       sound_upset();
       break;  
-    case 'W':
+    case 'W': // hands up
       up_hands();
       break;
-    case 'w':
+    case 'w': // hands down
       down_hands();
-      break;  
-    case 'U':
-      shake_head();
       break;
-    case 'u':
-      shake_head();
+    case 'X': // make a shake hands move
+      shake_hands(3, 200);
+      break;
+    case 'x': // make a wave hands move
+      wave_hands(3, 200);
+      break;    
+    case 'U': // make a shake haed move
+      shake_head(1, 300);
+      break;
+    case 'u': // make a shake haed move
+      shake_head(1, 300);
       break;  
     }
   }
+}
+
+void loop() {
+  check_for_obstacle();
+  check_for_controll_input();
 }
